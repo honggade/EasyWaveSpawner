@@ -1,0 +1,23 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "EasyWaveSpawner",
+	"Description": "一个简单的波次系统插件，包含简易的血量组件供使用",
+	"Category": "Other",
+	"CreatedBy": "Honggade",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "EasyWaveSpawner",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
