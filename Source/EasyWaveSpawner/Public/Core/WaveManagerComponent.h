@@ -38,24 +38,51 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Wave|Events")
 	FOnWaveProgressChanged OnWaveProgressChanged;
 
+	// 当前波次
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    int32 CurrentWaveIndex = -1;
+	
+    // 这一波还剩多少怪没刷出来
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    int32 PendingEnemiesToSpawn = 0;
+    
+    // 场上还剩多少活着的怪
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    int32 ActiveEnemyCount = 0;      
+    
+    // 当前波次总怪物量
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    int32 TotalEnemiesInCurrentWave = 0;
+       
+    // 当前状态
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    EWaveState CurrentState = EWaveState::Idle;
+    
+    // 用于处理倒计时和刷怪间隔
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+    FTimerHandle TimerHandle_StateDelay; 
+
+	// 倒计时剩余时间
+	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
+	float CurrentCountdownTime = 0.0f;
+	
+	
 protected:
 	/** 波次配置文件 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Config")
 	class UUWaveDataAsset* WaveDataAsset;
 
 private:
-	// --- 内部状态变量 ---
-	int32 CurrentWaveIndex = -1;
-	int32 PendingEnemiesToSpawn = 0; // 这一波还剩多少怪没刷出来
-	int32 ActiveEnemyCount = 0;      // 场上还剩多少活着的怪
-	int32 TotalEnemiesInCurrentWave = 0;
-    
-	EWaveState CurrentState = EWaveState::Idle;
-	FTimerHandle TimerHandle_StateDelay; // 用于处理倒计时和刷怪间隔
-    
 	// 缓存场景中的生成点
 	UPROPERTY()
 	TArray<AActor*> CachedSpawnPoints;
+	
+	// 专门用于本波次循环使用的打乱后的生成点队列
+	UPROPERTY()
+	TArray<AActor*> ShuffledSpawnPoints;
+
+	// 当前取到了第几个点
+	int32 NextSpawnPointIndex = 0;
 
 	// --- 内部逻辑函数 ---
 	void SetState(EWaveState NewState);
@@ -65,5 +92,5 @@ private:
 	void CheckWaveProgress();
 	void UpdateCountdown();
     
-	float CurrentCountdownTime = 0.0f;
+	
 };
