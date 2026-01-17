@@ -38,6 +38,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Wave|Events")
 	FOnWaveProgressChanged OnWaveProgressChanged;
 
+	// 是否自动开始下一波。如果为 false，每一波结束后系统会进入 Idle，等待手动再次调用 StartWaveSystem 或自定义函数
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Config")
+	bool bAutoStartNextWave = true;
+	
 	// 当前波次
 	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
     int32 CurrentWaveIndex = -1;

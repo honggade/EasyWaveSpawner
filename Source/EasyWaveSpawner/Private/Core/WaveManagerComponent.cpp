@@ -23,9 +23,10 @@ void UWaveManagerComponent::BeginPlay()
 
 void UWaveManagerComponent::StartWaveSystem()
 {
+    if (CurrentState != EWaveState::Idle && CurrentState != EWaveState::WaveComplete){ return; }
     if (WaveDataAsset && WaveDataAsset->WaveSequence.Num() > 0)
     {
-        CurrentWaveIndex = 0;
+        if (CurrentWaveIndex == -1 ){ CurrentWaveIndex = 0; }
         StartPreparation();
     }
 }
@@ -154,9 +155,19 @@ void UWaveManagerComponent::CheckWaveProgress()
     if (CurrentWaveIndex < WaveDataAsset->WaveSequence.Num())
     {
         SetState(EWaveState::WaveComplete);
-        // 延迟一会儿进入下一波
-        FTimerHandle NextWaveHandle;
-        GetWorld()->GetTimerManager().SetTimer(NextWaveHandle, this, &UWaveManagerComponent::StartPreparation, 3.0f, false);
+        // 判断是否自动开始下一波
+        if (bAutoStartNextWave)
+        {
+            // 自动开始：延迟几秒后进入准备阶段
+            FTimerHandle NextWaveHandle;
+            GetWorld()->GetTimerManager().SetTimer(NextWaveHandle, this, &UWaveManagerComponent::StartPreparation, 2.0f, false);
+        }
+        else
+        {
+            // 手动开始：系统进入 Idle 状态，不再有动作，直到开发者再次调用 StartWaveSystem()
+            // 你也可以在这里广播一个自定义委托，告诉 UI 显示“按G开始下一波”
+            SetState(EWaveState::Idle); 
+        }
     }
     else
     {
