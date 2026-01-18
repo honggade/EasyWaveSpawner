@@ -70,6 +70,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Wave|Status")
 	float CurrentCountdownTime = 0.0f;
 	
+	/** 供UI调用：获取指定波次的预览信息（总人数、准备时间） */
+	UFUNCTION(BlueprintCallable, Category = "Wave")
+	void GetWavePreviewInfo(int32 WaveIndex, int32& OutTotalEnemies, float& OutPrepTime);
 	
 protected:
 	/** 波次配置文件 */

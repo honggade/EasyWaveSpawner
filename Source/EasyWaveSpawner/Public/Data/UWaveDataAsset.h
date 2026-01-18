@@ -23,8 +23,10 @@ public:
 		if (WaveSequence.IsValidIndex(Index))
 		{
 			OutDefinition = WaveSequence[Index];
+			UE_LOG(LogTemp, Log, TEXT("传入波次index有效"));
 			return true;
 		}
+		UE_LOG(LogTemp, Log, TEXT("传入波次index无效"));
 		return false;
 	}
 };

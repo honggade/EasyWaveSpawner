@@ -18,7 +18,6 @@ void UWaveManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
     UGameplayStatics::GetAllActorsOfClass(GetWorld(),ASpawnPoint::StaticClass(),CachedSpawnPoints);
-    
 }
 
 void UWaveManagerComponent::StartWaveSystem()
@@ -47,7 +46,7 @@ void UWaveManagerComponent::StartPreparation()
 void UWaveManagerComponent::UpdateCountdown()
 {
     CurrentCountdownTime -= 1.0f;
-    OnCountdownUpdated.Broadcast(CurrentCountdownTime, 0.0f); // 0.0f 处可以传入总时间
+    OnCountdownUpdated.Broadcast(CurrentCountdownTime, 0.0f);
 
     if (CurrentCountdownTime <= 0)
     {
@@ -172,6 +171,31 @@ void UWaveManagerComponent::CheckWaveProgress()
     else
     {
         SetState(EWaveState::AllCompleted);
+    }
+}
+
+void UWaveManagerComponent::GetWavePreviewInfo(int32 WaveIndex, int32& OutTotalEnemies, float& OutPrepTime)
+{
+    OutTotalEnemies = 0;
+    OutPrepTime = 0.0f;
+
+    if (!WaveDataAsset) return;
+
+    // 逻辑：如果游戏还没开始（Index为-1），我们默认给 UI 展示第 0 波（第一波）的数据
+    int32 TargetIndex = (WaveIndex < 0) ? 0 : WaveIndex;
+
+    FWaveDefinition WaveDef;
+    if (WaveDataAsset->GetWaveDefinition(TargetIndex, WaveDef))
+    {
+        // 关键一步：给引用参数赋值，蓝图引脚就会输出这些值
+        OutPrepTime = WaveDef.PreparationTime;
+        
+        int32 CountSum = 0;
+        for (const auto& EnemyEntry : WaveDef.Enemies)
+        {
+            CountSum += EnemyEntry.Count;
+        }
+        OutTotalEnemies = CountSum;
     }
 }
 
