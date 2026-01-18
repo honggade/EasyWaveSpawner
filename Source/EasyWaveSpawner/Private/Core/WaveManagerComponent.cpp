@@ -57,69 +57,79 @@ void UWaveManagerComponent::UpdateCountdown()
 
 void UWaveManagerComponent::StartSpawning()
 {
-    SetState(EWaveState::Spawning);
+    if (!WaveDataAsset) return;
     
     FWaveDefinition CurrentWave;
     if (!WaveDataAsset->GetWaveDefinition(CurrentWaveIndex, CurrentWave)) return;
 
-    // 1. 初始化统计数据
+    SetState(EWaveState::Spawning);
+    
+    // 1. 重置并构建怪物大名单
     TotalEnemiesInCurrentWave = 0;
-    for (const auto& Entry : CurrentWave.Enemies) { TotalEnemiesInCurrentWave += Entry.Count; }
+    CurrentWaveEnemyQueue.Empty();
+
+    for (const FWaveEnemyEntry& EnemyData : CurrentWave.Enemies)
+    {
+        TotalEnemiesInCurrentWave += EnemyData.Count;
+        for (int32 i = 0; i < EnemyData.Count; i++)
+        {
+            CurrentWaveEnemyQueue.Add(EnemyData.EnemyClass);
+        }
+    }
+
+    // 2. 【新增功能】根据开关决定是否打乱怪物顺序
+    if (bShuffleEnemyQueue && CurrentWaveEnemyQueue.Num() > 0)
+    {
+        for (int32 i = CurrentWaveEnemyQueue.Num() - 1; i > 0; i--)
+        {
+            int32 j = FMath::RandRange(0, i);
+            CurrentWaveEnemyQueue.Swap(i, j);
+        }
+    }
+
+    // 3. 初始化其它变量
     PendingEnemiesToSpawn = TotalEnemiesInCurrentWave;
     ActiveEnemyCount = 0;
+    NextEnemyQueueIndex = 0;
 
-    // 2. 初始化洗牌队列
-    ShuffledSpawnPoints = CachedSpawnPoints; // 复制一份
+    // 4. 初始化洗牌后的生成点（这一步建议始终保持洗牌，以保证位置均匀）
+    ShuffledSpawnPoints = CachedSpawnPoints;
     if (ShuffledSpawnPoints.Num() > 0)
     {
-        // 使用内置算法打乱顺序
         for (int32 i = ShuffledSpawnPoints.Num() - 1; i > 0; i--)
         {
             int32 j = FMath::RandRange(0, i);
             ShuffledSpawnPoints.Swap(i, j);
         }
     }
-    NextSpawnPointIndex = 0; // 重置索引
+    NextSpawnPointIndex = 0;
 
-    // 3. 开始周期性刷怪
+    // 5. 开启定时器
     float Interval = CurrentWave.Enemies.Num() > 0 ? CurrentWave.Enemies[0].SpawnInterval : 1.0f;
     GetWorld()->GetTimerManager().SetTimer(TimerHandle_StateDelay, this, &UWaveManagerComponent::SpawnSingleEnemy, Interval, true);
 }
 
 void UWaveManagerComponent::SpawnSingleEnemy()
 {
-    // 如果没怪了或没点，停止计时器
-    if (PendingEnemiesToSpawn <= 0 || ShuffledSpawnPoints.Num() == 0)
+    // 如果名单为空或已经刷完，停止
+    if (PendingEnemiesToSpawn <= 0 || !CurrentWaveEnemyQueue.IsValidIndex(NextEnemyQueueIndex))
     {
         GetWorld()->GetTimerManager().ClearTimer(TimerHandle_StateDelay);
         SetState(EWaveState::InProgress);
         return;
     }
 
-    // 1. 按照洗牌后的顺序选择生成点
+    // 1. 从大名单按顺序取怪（名单本身可能已经洗过牌了）
+    TSubclassOf<AActor> EnemyClass = CurrentWaveEnemyQueue[NextEnemyQueueIndex];
+    NextEnemyQueueIndex++;
+
+    // 2. 从洗牌后的生成点队列取点
+    if (ShuffledSpawnPoints.Num() == 0) return;
     AActor* SelectedPoint = ShuffledSpawnPoints[NextSpawnPointIndex];
-    
-    // 递增索引，如果用完了所有点，重新洗牌开启下一轮循环
-    NextSpawnPointIndex++;
-    if (NextSpawnPointIndex >= ShuffledSpawnPoints.Num())
-    {
-        NextSpawnPointIndex = 0;
-        // 再次打乱以防下一轮循环路径死板
-        for (int32 i = ShuffledSpawnPoints.Num() - 1; i > 0; i--)
-        {
-            int32 j = FMath::RandRange(0, i);
-            ShuffledSpawnPoints.Swap(i, j);
-        }
-    }
+    NextSpawnPointIndex = (NextSpawnPointIndex + 1) % ShuffledSpawnPoints.Num();
 
-    // 2. 准备怪物类别
-    FWaveDefinition WaveDef;
-    WaveDataAsset->GetWaveDefinition(CurrentWaveIndex, WaveDef);
-    TSubclassOf<AActor> EnemyClass = WaveDef.Enemies[0].EnemyClass;
-
-    // 3. 执行生成
+    // 3. 生成逻辑
     FActorSpawnParameters SpawnParams;
-    // 强制生成，哪怕有碰撞也会尝试挤开或重叠，确保怪物数量不会少
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
     
     AActor* NewEnemy = GetWorld()->SpawnActor<AActor>(EnemyClass, SelectedPoint->GetActorTransform(), SpawnParams);

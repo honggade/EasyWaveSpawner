@@ -20,6 +20,10 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	// 是否打乱怪物出场顺序。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave|Config")
+	bool bShuffleEnemyQueue = true;
+	
 	/** 开始波次系统（手动调用或 BeginPlay 自动调用） */
 	UFUNCTION(BlueprintCallable, Category = "Wave")
 	void StartWaveSystem();
@@ -80,6 +84,13 @@ protected:
 	class UUWaveDataAsset* WaveDataAsset;
 
 private:
+	// 这一波所有怪物的类型名单（按顺序或打乱存放）
+	UPROPERTY()
+	TArray<TSubclassOf<AActor>> CurrentWaveEnemyQueue;
+
+	// 名单索引
+	int32 NextEnemyQueueIndex = 0;
+	
 	// 缓存场景中的生成点
 	UPROPERTY()
 	TArray<AActor*> CachedSpawnPoints;
